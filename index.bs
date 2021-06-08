@@ -29,6 +29,12 @@ spec: media-source; urlPrefix: https://www.w3.org/TR/media-source/
     type: method
         for: MediaSource; text: isTypeSupported(); url: #dom-mediasource-istypesupported
 
+spec: media-source-codec-switching; urlPrefix: https://rawgit.com/wicg/media-source/codec-switching/index.html
+    type: interface
+        for: SourceBuffer; text: SourceBuffer; url: #sourcebuffer
+    type: method
+        for: SourceBuffer; text: changeType(); url: #dom-sourcebuffer-changetype
+
 spec: html; urlPrefix: https://html.spec.whatwg.org/multipage/;
     type: method
         for: HTMLMediaElement; text: canPlayType(); url: #dom-navigator-canplaytype
@@ -95,6 +101,8 @@ spec: encrypted-media; for: EME; urlPrefix: https://www.w3.org/TR/encrypted-medi
         text: MediaKeysRequirement; url: dom-mediakeysrequirement
         text: audioCapabilities; url: dom-mediakeysystemconfiguration-audiocapabilities
         text: contentType; url: dom-mediakeysystemmediacapability-contenttype
+    type: method
+        text: setMediaKeys(); url: dom-htmlmediaelement-setmediakeys
 
 spec: encrypted-media-draft; for: EME; urlPrefix: https://w3c.github.io/encrypted-media/#
     type: attribute
@@ -179,6 +187,22 @@ spec: secure-contexts; urlPrefix: https://www.w3.org/TR/secure-contexts/
       </li>
     </ul>
   </p>
+</section>
+
+<section>
+  <h2 id='definitions'>Definitions</h2>
+  <dl>
+    <dt><dfn>Decoding Pipeline</dfn></dt>
+    <dd>
+      A configuration of inernal user agent components that implement media
+      decoding. For the purposes of this specification, we concieve of user
+      agents having distinct pipelines for encrypted vs unencrypted media.
+      Additionally, user agents may support several distinct encrypted media
+      pipelines, which must be signalled by using different
+      {{MediaCapabilitiesKeySystemConfiguration/keySystem}} names or different
+      {{KeySystemTrackConfiguration/robustness}} levels.
+    </dd>
+  </dl>
 </section>
 
 <section>
@@ -767,6 +791,7 @@ spec: secure-contexts; urlPrefix: https://www.w3.org/TR/secure-contexts/
 
     <pre class='idl'>
       dictionary MediaCapabilitiesDecodingInfo : MediaCapabilitiesInfo {
+        required boolean codecSwitchingSupported;
         required MediaKeySystemAccess keySystemAccess;
         MediaDecodingConfiguration configuration;
       };
@@ -793,6 +818,20 @@ spec: secure-contexts; urlPrefix: https://www.w3.org/TR/secure-contexts/
       configuration. It is worth noting that even when a device is not power
       constrained, high power usage has side effects such as increasing the
       temperature or the fans noise.
+    </p>
+
+    <p>
+      A {{MediaCapabilitiesDecodingInfo}} has an associated
+      <dfn dict-member for='MediaCapabilitiesDecodingInfo'>
+      codecSwitchingSupported</dfn> which is a boolean.
+    </p>
+
+    <p class='note'>
+      Authors can use {{MediaCapabilitiesDecodingInfo/codecSwitchingSupported}}
+      to determine whether the user agent supports codec switching via
+      {{SourceBuffer/changeType()}} within the described
+      <a>decoding pipeline</a>. Note that switching between
+      <a>decoding pipelines</a> is a separate quality of implementation issue as desribed by {{EME/setMediaKeys()}}.
     </p>
 
     <p>
@@ -940,6 +979,23 @@ spec: secure-contexts; urlPrefix: https://www.w3.org/TR/secure-contexts/
               power source in order to determine the decoding power
               efficiency unless the device's power source has side effects
               such as enabling different decoding modules.
+            </li>
+            <li>
+              If <code>configuration.type</code> is set to
+              {{MediaDecodingType/media-source}}:
+              <ol>
+                <li>
+                  Let <var>pipeline</var> be the <a>decoding pipeline</a>
+                  described by <var>configuration</var>.
+                </li>
+                <li>
+                  If <var>pipeline</var> is able to support using
+                  {{SourceBuffer}} {{SourceBuffer/changeType()}} to switch
+                  between any and all of its supported codecs, set
+                  {{MediaCapabilitiesDecodingInfo/codecSwitchingSupported}}
+                  to <code>true</code>. Otherwise, set it to <code>false</code>.
+                </li>
+              </ol>
             </li>
             <li>
               Return <var>info</var>.
